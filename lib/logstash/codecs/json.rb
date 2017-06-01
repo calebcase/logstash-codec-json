@@ -52,16 +52,18 @@ class LogStash::Codecs::JSON < LogStash::Codecs::Base
   end
 
   def legacy_parse(json, &block)
-    decoded = LogStash::Json.load(json)
+    unless json.to_s.strip.empty?
+      decoded = LogStash::Json.load(json)
 
-    case decoded
-    when Array
-      decoded.each {|item| yield(LogStash::Event.new(item)) }
-    when Hash
-      yield LogStash::Event.new(decoded)
-    else
-      @logger.error("JSON codec is expecting array or object/map", :data => json)
-      yield LogStash::Event.new("message" => json, "tags" => ["_jsonparsefailure"])
+      case decoded
+      when Array
+        decoded.each {|item| yield(LogStash::Event.new(item)) }
+      when Hash
+        yield LogStash::Event.new(decoded)
+      else
+        @logger.error("JSON codec is expecting array or object/map", :data => json)
+        yield LogStash::Event.new("message" => json, "tags" => ["_jsonparsefailure"])
+      end
     end
   rescue LogStash::Json::ParserError => e
     @logger.info("JSON parse failure. Falling back to plain-text", :error => e, :data => json)
